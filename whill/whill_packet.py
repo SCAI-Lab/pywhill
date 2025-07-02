@@ -30,29 +30,38 @@ def parse_data_set_0(self, payload):
     self.seq_data_set_0 += 1
     self.fire_callback('data_set_0')
 
-
 def parse_data_set_1(self, payload):
-    # payload[0-11] are dedicated to IMU and no longer available.
-    # See https://github.com/WHILL/pywhill/issues/3 for more detail.
+    def to_signed_16(msb, lsb):
+        val = (msb << 8) | lsb
+        return val if val < 0x8000 else val - 0x10000
+
+    self.imu = {}
+    self.imu_acc['x'] = to_signed_16(payload[0], payload[1]) * 0.122  # [mg]
+    self.imu_acc['y'] = to_signed_16(payload[2], payload[3]) * 0.122  # [mg]
+    self.imu_acc['z'] = to_signed_16(payload[4], payload[5]) * 0.122  # [mg]
+    self.imu_gyro['x'] = to_signed_16(payload[6], payload[7]) * 4.375  # [mdps]
+    self.imu_gyro['y'] = to_signed_16(payload[8], payload[9]) * 4.375  # [mdps]
+    self.imu_gyro['z'] = to_signed_16(payload[10], payload[11]) * 4.375  # [mdps]
+
     self.joy['front'] = s8(payload[12])
     self.joy['side'] = s8(payload[13])
+
     self.battery['level'] = payload[14]
-    self.battery['current'] = int.from_bytes(payload[15:17], 'big', signed=True) * 2.0
-    self.right_motor['angle'] = int.from_bytes(payload[17:19], 'big', signed=True) * 0.001
-    self.left_motor['angle'] = int.from_bytes(payload[19:21], 'big', signed=True) * 0.001
-    self.right_motor['speed'] = int.from_bytes(payload[21:23], 'big', signed=True) * 0.004
-    self.left_motor['speed'] = int.from_bytes(payload[23:25], 'big', signed=True) * 0.004
+    self.battery['current'] = to_signed_16(payload[15], payload[16]) * 2.0  # [mA]
+
+    self.right_motor['angle'] = - to_signed_16(payload[17], payload[18]) * 0.001  # [rad]
+    self.left_motor['angle'] = to_signed_16(payload[19], payload[20]) * 0.001
+
+    self.right_motor['speed'] = - to_signed_16(payload[21], payload[22]) * 0.004  # [km/h]
+    self.left_motor['speed'] = to_signed_16(payload[23], payload[24]) * 0.004
+
     self.power_status = payload[25]
     self.speed_mode_indicator = payload[26]
     self.error_code = payload[27]
-
-    self.timestamp_past = self.timestamp_current
-    self.timestamp_current = payload[28]
-    self.time_diff_ms = calc_time_diff(self.timestamp_past, self.timestamp_current)
+    self.angle_detect_counter = payload[28]
 
     self.seq_data_set_1 += 1
     self.fire_callback('data_set_1')
-
 
 __parser_dict = {0: parse_data_set_0, 1: parse_data_set_1}
 
