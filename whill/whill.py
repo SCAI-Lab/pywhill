@@ -96,7 +96,7 @@ class ComWHILL():
         self.__velocity_thread_stop = threading.Event()
 
     @property
-    def get_joystick_disabled(self) -> bool:
+    def joystick_disabled(self) -> bool:
         return self.__velocity_watchdog_enabled
 
     def update_velocity(self, front, side):
@@ -123,7 +123,7 @@ class ComWHILL():
             now = time.time()
             time_since_last_cmd = now - self.__last_velocity_cmd_time
             if time_since_last_cmd > self.__VELOCITY_TIMEOUT_SEC:
-                self.send_velocity(0, 0)
+                self.send_joystick(0, 0)
                 self.__last_velocity_cmd_time = now  # prevent spamming
             time.sleep(0.05)  # check every 50ms
 
